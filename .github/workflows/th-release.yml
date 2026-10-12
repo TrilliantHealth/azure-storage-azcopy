@@ -1,0 +1,52 @@
+# Builds Trilliant Health internal releases of AzCopy from th/release-* branches.
+# Pushing a tag such as v10.32.8-th1 builds the Linux binary and attaches it to a GitHub release.
+
+name: Trilliant Health Release
+
+on:
+  push:
+    tags:
+      - 'v*-th*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check tag matches AzcopyVersion
+        run: |
+          version=$(sed -n 's/^const AzcopyVersion = "\(.*\)"$/\1/p' common/version.go)
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match AzcopyVersion ${version} in common/version.go"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev libglib2.0-dev
+
+      - name: Build
+        run: |
+          mkdir -p output
+          GOARCH=amd64 GOOS=linux go build -tags "netgo" -o output/azcopy_linux_amd64
+          ./output/azcopy_linux_amd64 --version
+          (cd output && sha256sum azcopy_linux_amd64 > azcopy_linux_amd64.sha256)
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" output/* \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "Internal build of AzCopy ${GITHUB_REF_NAME#v} from ${GITHUB_SHA}. See the branch history for changes on top of upstream." \
+            --prerelease
