@@ -30,7 +30,7 @@ func (t *gcpTraverser) IsDirectory(isSource bool) (bool, error) {
 	if !isSource {
 		return isDirDirect, nil
 	}
-	bkt := t.gcpClient.Bucket(t.gcpURLParts.BucketName)
+	bkt := common.GCPBucket(t.gcpClient, t.gcpURLParts.BucketName)
 	obj := bkt.Object(t.gcpURLParts.ObjectKey)
 	//Directories do not have attributes and hence throw error
 	_, err := obj.Attrs(t.ctx)
@@ -55,7 +55,7 @@ func (t *gcpTraverser) Traverse(preprocessor objectMorpher, processor ObjectProc
 		objectPath := strings.Split(t.gcpURLParts.ObjectKey, "/")
 		objectName := objectPath[len(objectPath)-1]
 
-		attrs, err := t.gcpClient.Bucket(t.gcpURLParts.BucketName).Object(t.gcpURLParts.ObjectKey).Attrs(t.ctx)
+		attrs, err := common.GCPBucket(t.gcpClient, t.gcpURLParts.BucketName).Object(t.gcpURLParts.ObjectKey).Attrs(t.ctx)
 		if err == nil {
 			common.GetLifecycleMgr().Info(fmt.Sprintf("Bucket: %v, Object: %v, Type: %v\n", attrs.Bucket, attrs.Name, attrs.ContentType))
 			gie := common.GCPObjectInfoExtension{ObjectInfo: *attrs}
@@ -86,7 +86,7 @@ func (t *gcpTraverser) Traverse(preprocessor objectMorpher, processor ObjectProc
 	}
 	searchPrefix := t.gcpURLParts.ObjectKey
 
-	bkt := t.gcpClient.Bucket(t.gcpURLParts.BucketName)
+	bkt := common.GCPBucket(t.gcpClient, t.gcpURLParts.BucketName)
 	query := &gcpUtils.Query{Prefix: searchPrefix}
 	if !t.recursive {
 		query.Delimiter = "/"
@@ -112,7 +112,7 @@ func (t *gcpTraverser) Traverse(preprocessor objectMorpher, processor ObjectProc
 			oie := common.GCPObjectInfoExtension{ObjectInfo: gcpUtils.ObjectAttrs{}}
 
 			if t.getProperties {
-				oi, err := t.gcpClient.Bucket(t.gcpURLParts.BucketName).Object(attrs.Name).Attrs(t.ctx)
+				oi, err := common.GCPBucket(t.gcpClient, t.gcpURLParts.BucketName).Object(attrs.Name).Attrs(t.ctx)
 				if err != nil {
 					return err
 				}

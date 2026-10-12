@@ -50,3 +50,13 @@ func (gie *GCPObjectInfoExtension) NewCommonMetadata() Metadata {
 	}
 	return md
 }
+
+// GCPBucket returns a handle to the named bucket. When AZCOPY_GCP_USER_PROJECT is set, requests made
+// through the handle are billed to that project, which buckets with Requester Pays enabled require.
+func GCPBucket(client *gcpUtils.Client, bucketName string) *gcpUtils.BucketHandle {
+	bkt := client.Bucket(bucketName)
+	if userProject := GetEnvironmentVariable(EEnvironmentVariable.GCPUserProject()); userProject != "" {
+		bkt = bkt.UserProject(userProject)
+	}
+	return bkt
+}

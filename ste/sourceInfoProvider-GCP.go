@@ -73,6 +73,10 @@ func (p *gcpSourceInfoProvider) PreSignedSourceURL() (string, error) {
 		PrivateKey:     conf.PrivateKey,
 		Expires:        time.Now().Add(defaultPresignExpires),
 	}
+	// Buckets with Requester Pays enabled reject signed URLs that don't name a project to bill.
+	if userProject := common.GetEnvironmentVariable(common.EEnvironmentVariable.GCPUserProject()); userProject != "" {
+		opts.QueryParameters = url.Values{"userProject": {userProject}}
+	}
 	u, err := gcpUtils.SignedURL(p.gcpURLParts.BucketName, p.gcpURLParts.ObjectKey, opts)
 
 	if err != nil {
@@ -88,7 +92,7 @@ func (p *gcpSourceInfoProvider) Properties() (*SrcProperties, error) {
 		SrcMetadata:    p.transferInfo.SrcMetadata,
 	}
 	if p.transferInfo.S2SGetPropertiesInBackend {
-		objectInfo, err := p.gcpClient.Bucket(p.gcpURLParts.BucketName).Object(p.gcpURLParts.ObjectKey).Attrs(p.ctx)
+		objectInfo, err := common.GCPBucket(p.gcpClient, p.gcpURLParts.BucketName).Object(p.gcpURLParts.ObjectKey).Attrs(p.ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +155,7 @@ func (p *gcpSourceInfoProvider) IsLocal() bool {
 }
 
 func (p *gcpSourceInfoProvider) GetFreshFileLastModifiedTime() (time.Time, error) {
-	objectInfo, err := p.gcpClient.Bucket(p.gcpURLParts.BucketName).Object(p.gcpURLParts.ObjectKey).Attrs(p.ctx)
+	objectInfo, err := common.GCPBucket(p.gcpClient, p.gcpURLParts.BucketName).Object(p.gcpURLParts.ObjectKey).Attrs(p.ctx)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -164,7 +168,7 @@ func (p *gcpSourceInfoProvider) EntityType() common.EntityType {
 
 func (p *gcpSourceInfoProvider) GetMD5(offset, count int64) ([]byte, error) {
 	// gcp does not support getting range md5
-	body, err := p.gcpClient.Bucket(p.gcpURLParts.BucketName).Object(p.gcpURLParts.ObjectKey).NewRangeReader(p.ctx, offset, count)
+	body, err := common.GCPBucket(p.gcpClient, p.gcpURLParts.BucketName).Object(p.gcpURLParts.ObjectKey).NewRangeReader(p.ctx, offset, count)
 	if err != nil {
 		return nil, err
 	}
