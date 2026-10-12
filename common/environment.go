@@ -68,6 +68,7 @@ var VisibleEnvironmentVariables = []EnvironmentVariable{
 	EEnvironmentVariable.AWSAccessKeyID(),
 	EEnvironmentVariable.AWSSecretAccessKey(),
 	EEnvironmentVariable.GoogleAppCredentials(),
+	EEnvironmentVariable.GCPUserProject(),
 	EEnvironmentVariable.ShowPerfStates(),
 	EEnvironmentVariable.PacePageBlobs(),
 	EEnvironmentVariable.AutoTuneToCpu(),
@@ -402,6 +403,13 @@ func (EnvironmentVariable) GoogleCloudProject() EnvironmentVariable {
 	return EnvironmentVariable{
 		Name:        "GOOGLE_CLOUD_PROJECT",
 		Description: "Project ID required for service level traversals in Google Cloud Storage",
+	}
+}
+
+func (EnvironmentVariable) GCPUserProject() EnvironmentVariable {
+	return EnvironmentVariable{
+		Name:        "AZCOPY_GCP_USER_PROJECT",
+		Description: "Project ID billed for requests to Google Cloud Storage. Required when the source bucket has Requester Pays enabled.",
 	}
 }
 
